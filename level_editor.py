@@ -130,7 +130,6 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
         print(str)
         file.write(str)
         file.write('\n')
-
        
               
     def parse_scene_recursive(self, file, object, level):
@@ -141,7 +140,7 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
             indent +="\t"
 
         #オブジェクト名書き込み
-        self.write_and_print(file, indent+ object.type + " - " + object.name)
+        self.write_and_print(file, indent+ object.type)
 
         trans, rot, scale = object.matrix_local.decompose()
 
@@ -154,19 +153,19 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
         rot.z = math.degrees(rot.z)
 
         #トランスフォーム情報を表示
-        self.write_and_print(file, indent + "Trans(%f,%f,%f)" % (trans.x, trans.y, trans.z))
-        self.write_and_print(file, indent + "Rot(%f,%f,%f)" % (rot.x, rot.y, rot.z))
-        self.write_and_print(file, indent + "Scale(%f,%f,%f)" % (scale.x, scale.y, scale.z))
-
+        self.write_and_print(file, indent + "T %f %f %f " % (trans.x, trans.y, trans.z))
+        self.write_and_print(file, indent + "R  %f %f %f " % (rot.x, rot.y, rot.z))
+        self.write_and_print(file, indent + "S  %f %f %f " % (scale.x, scale.y, scale.z))
+        #カスタムプロパティ'file_name'
+        if"file_name"in object:
+            self.write_and_print(file,indent+"N %s " % object["file_name"])
+        self.write_and_print(file,indent + 'END' )
         self.write_and_print(file, '')
         
         #子ノードへ進む(深さが1上がる)
         for child in object.children:
             self.parse_scene_recursive(file, child, level + 1)
         
-        
-            
-
             print(object.type + " - " + object.name)
 
             #ローカルトランスフォームを取得（行列から回転・スケーリングを抽出）
