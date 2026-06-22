@@ -119,19 +119,25 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
 
             #ファイルに文字列を書き込む
             file.write("SCENE")
-             
+            #シーン内の全オブジェクトについて
+            for object in bpy.context.scene.objects:
+            
+                if(object.parent):
+                    continue
+                self.parse_scene_recursive(file, object, 0)
              
     def write_and_print(self, file, str):
         print(str)
         file.write(str)
         file.write('\n')
-        self.write_and_print(file, "あいうえお")
+
+       
               
     def parse_scene_recursive(self, file, object, level):
         """シーン解析用再帰関数"""
         
         indent=''
-        for i in range(lebel):
+        for i in range(level):
             indent +="\t"
 
         #オブジェクト名書き込み
@@ -158,12 +164,7 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
         for child in object.children:
             self.parse_scene_recursive(file, child, level + 1)
         
-        #シーン内の全オブジェクトについて
-        for object in bpy.context.scene.objects:
-            
-            if(object.parent):
-                continue
-            self.parse_scene_recursive(file, object, 0)
+        
             
 
             print(object.type + " - " + object.name)
@@ -192,9 +193,45 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
             print()
 
 
+#パネル ファイル名
+class OBJECT_PT_file_name(bpy.types.Panel):
+    """オブジェクトのファイルネームパネル """
+    bl_idname="OBJECT_PT_file_name"
+    bl_label="FileName"
+    bl_space_type="PROPERTIES"
+    bl_region_type="WINDOW" 
+    bl_context="object"
+    
+    #サブメニューの描画
+    def draw(self,context):
+
+        #パネルに項目を追加
+        self.layout.operator(MYADDON_OT_stretch_vertex.bl_idname,text=MYADDON_OT_stretch_vertex.bl_label)
+        self.layout.operator(MYADDON_OT_create_ico_sphere.bl_idname,text=MYADDON_OT_create_ico_sphere.bl_label)
+        self.layout.operator(MYADDON_OT_export_scene.bl_idname,text=MYADDON_OT_export_scene.bl_label)
+
+        if"file_name" in context.object:
+            #既にプロパティがあれば、プロパティを表示
+            self.layout.prop(context.object,'["file_name"]', text=self.bl_label)
+        else:
+            #プロパティがなければ、プロパティ追加ボタンを表示
+            self.layout.operator(MYADDON_OT_add_filename.bl_idname)
+
+
         
-        
-        
+#パネル ファイル名
+class MYADDON_OT_add_filename(bpy.types.Operator):
+    bl_idname="myaddon.myaddon_ot_add_folename"
+    bl_label="FileName 追加"
+    bl_description="['file_name']カスタムプロパティを追加します"
+    bl_options={"REGISTER","UNDO"}
+
+    def execute(self,context):
+
+        #['faile_name']カスタムプロパティを追加
+        context.object["file_name"]=""
+
+        return {"FINISHED"}
         
         
 
@@ -204,6 +241,8 @@ MYADDON_OT_stretch_vertex,
 MYADDON_OT_create_ico_sphere,
 MYADDON_OT_export_scene,
 TOPBAR_MT_my_menu,
+MYADDON_OT_add_filename,
+OBJECT_PT_file_name,
 )
 
 
