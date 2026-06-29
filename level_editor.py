@@ -284,7 +284,7 @@ class DrawCollider:
             #Boxの8頂点分回す
             for offset in offsets:
 
-                pos=copy.sopy(object.location)
+                pos=copy.copy(object.location)
                 #中心点を基準に書く頂点ごとにずらす
                 pos[0]+=offset[0]*size[0]
                 pos[1]+=offset[1]*size[1]
