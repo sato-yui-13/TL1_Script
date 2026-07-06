@@ -4,6 +4,7 @@ import bpy_extras
 import gpu
 import gpu_extras.batch
 import copy
+import mathutils
 
 
 # ブレンダー登録情報
@@ -104,10 +105,24 @@ class MYADDON_OT_export_scene(bpy.types.Operator, bpy_extras.io_utils.ExportHelp
         self.write_and_print(file, indent + f"R {rot.x} {rot.y} {rot.z}")
         self.write_and_print(file, indent + f"S {scale.x} {scale.y} {scale.z}")
 
-        if "file_name" in obj:
+        if "file_name" in object:
             self.write_and_print(file, indent + f"N {obj['file_name']}")
 
         self.write_and_print(file, indent + "END\n")
+
+        #カスタムプログラムパティ'collision'
+        #カスタムプロパティ collision
+        if "collider" in object:
+            self.write_and_print(file, indent + "C %s" % object["collider"])
+
+            temp_str = indent + "CC %f %f %f"
+            temp_str %= (object["collider_center"][0], object["collider_center"][1], object["collider_center"][2])
+            self.write_and_print(file, temp_str)
+
+            temp_str = indent + "CS %f %f %f"
+            temp_str %= (object["collider_size"][0],object["collider_size"][1],object["collider_size"][2])
+            self.write_and_print(file, temp_str)
+
 
         for child in obj.children:
             self.parse_scene_recursive(file, child, level + 1)
@@ -125,6 +140,7 @@ class OBJECT_PT_file_name(bpy.types.Panel):
         self.layout.operator(MYADDON_OT_stretch_vertex.bl_idname)
         self.layout.operator(MYADDON_OT_create_ico_sphere.bl_idname)
         self.layout.operator(MYADDON_OT_export_scene.bl_idname)
+
 
         obj = context.object
 
@@ -175,13 +191,33 @@ class DrawCollider:
         # 頂点生成
         for obj in bpy.context.scene.objects:
 
+            #コライダープロパティがなければ、描画をスキップ
+            if not "collider" in object:
+                continue
+            #中心点、サイズの変数を宣言
+            center=mathutils.Vector((0,0,0))
+            size = mathutils.Vector((2,2,2))
+
+            #プロパティから値を取得
+            center[0]=object["collider_center"][0]
+            center[1]=object["collider_center"][1]
+            center[2]=object["cokkider_center"][2]
+            size[0]=object["collider_size"][0]
+            size[1]=object["collider_size"][1]
+            size[2]=object["collider_size"][2]
+
+            
+
+           #追加前の頂点数
             start = len(vertices["pos"])
 
             for offset in offsets:
-                pos = copy.copy(obj.location)
+                pos = copy.copy(center)
                 pos[0] += offset[0] * size[0]
                 pos[1] += offset[1] * size[1]
                 pos[2] += offset[2] * size[2]
+                #ローカル座標からワールド座標に変換
+                pos=object.mtrix_world @ pos
                 vertices["pos"].append(pos)
 
             indices.extend([
@@ -205,6 +241,46 @@ class DrawCollider:
         batch.draw(shader)
 
 
+
+#オペレータ　カスタム　プロパティ['collider']追加
+class MYADDON_OT_add_collider(bpy.types.Operator):
+    bl_idname="myaddon.myaddon_ot_add_collider"
+    bl_label="コライダー 追加"
+    bl_description="['collider']カスタムプロパティを追加します"
+    bl_options={"REGISTER","UNDO"}
+
+
+    def execute(self,context):
+
+        #['collider']カスタムプロパティを追加
+        context.object["collider"]="BOX"
+        context.object["collider_center"]=mathutils.Vector((0,0,0))
+        context.object["collider_size"]=mathutils.Vector((2,2,2))
+
+        return{"FINISHED"}
+
+#パネル クラス
+class OBJECT_PT_collider(bpy.types.Panel):
+    bl_idname = "OBJECT_PT_collider"
+    bl_label = "Collider"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+
+    # サブメニューの描画
+    def draw(self, context):
+
+        #パネルに項目を追加
+        if "collider" in context.object:
+            #既にプロパティがあれば、プロパティを表示
+            self.layout.prop(context.object, '["collider"]', text="Type")
+            self.layout.prop(context.object, '["collider_center"]', text="Center")
+            self.layout.prop(context.object, '["collider_size"]', text="Size")
+        else:
+            #プロパティがなければ、プロパティ追加ボタンを表示
+            self.layout.operator(MYADDON_OT_add_collider.bl_idname, text="コライダー追加")
+           
+
 # 登録クラス
 classes = (
     MYADDON_OT_stretch_vertex,
@@ -213,6 +289,7 @@ classes = (
     TOPBAR_MT_my_menu,
     MYADDON_OT_add_filename,
     OBJECT_PT_file_name,
+    MYADDON_OT_add_collider,
 )
 
 
